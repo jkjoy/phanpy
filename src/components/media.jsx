@@ -335,6 +335,19 @@ function Media({
       ref.instance.setup.trackPadPanning.disabled = scale <= 1.01;
     }
   }, []);
+  const onZoom = useCallback((context) => {
+    // Prevent synthetic mousedown from cancelling zoom animation
+    if (context.instance?.setup?.panning) {
+      context.instance.setup.panning.allowLeftClickPan = false;
+    }
+  }, []);
+  const onZoomStop = useCallback((context) => {
+    // Restore left-click panning based on zoom level
+    if (context.instance?.setup?.panning) {
+      context.instance.setup.panning.allowLeftClickPan =
+        context.state.scale > 1.01;
+    }
+  }, []);
   const transformWrapperProps = {
     smooth: false,
     centerZoomedOut: true,
@@ -358,6 +371,8 @@ function Media({
       disabled: true,
     },
     onTransform,
+    onZoom,
+    onZoomStop,
   };
   const transformComponentProps = {
     wrapperClass: 'media-zoom',
@@ -419,8 +434,13 @@ function Media({
                   data-orientation={orientation}
                   loading="eager"
                   decoding="sync"
+                  draggable={false}
                   style={{
                     'view-transition-name': mediaVTN,
+                    // react-zoom-pan-pinch disables pointer events on imgs,
+                    // breaking the native image context menu (Copy Image, etc.);
+                    // native dragging stays off via draggable={false}
+                    pointerEvents: 'auto',
                   }}
                   onLoad={(e) => {
                     const el = e.target;
